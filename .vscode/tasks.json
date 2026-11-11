@@ -1,0 +1,12 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Jupyter: Export active notebook to PDF",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-File", "${workspaceFolder}/.vscode/export-notebook-pdf.ps1", "${file}"],
+            "problemMatcher": []
+        }
+    ]
+}
