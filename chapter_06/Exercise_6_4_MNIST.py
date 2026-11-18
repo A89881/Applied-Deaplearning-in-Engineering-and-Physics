@@ -1,7 +1,7 @@
-# Adapted from the course template.
-# Saved figures and measured results are documented in the matching PDF.
+# Adapted from the course MNIST exercise.
 
 from itertools import product
+from time import perf_counter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -46,11 +46,14 @@ def fit_model(widths, dropout, rate=0.001, batch=128, activation='relu',
     model = keras.Sequential(network_layers)
     model.compile(optimizer=keras.optimizers.Adam(rate),
                   loss='categorical_crossentropy', metrics=['accuracy'])
+    started = perf_counter()
+    print(f'Training {widths}, dropout={dropout}, rate={rate}, batch={batch}', flush=True)
     history = model.fit(x_train, y_train, batch_size=batch, epochs=10,
-                        validation_data=(x_val, y_val), verbose=0).history
+                        validation_data=(x_val, y_val), verbose=2).history
     accuracy = None
     if evaluate_test:
-        _, accuracy = model.evaluate(x_test, y_test_hot, verbose=0)
+        _, accuracy = model.evaluate(x_test, y_test_hot, batch_size=512, verbose=0)
+    print(f'Finished in {perf_counter() - started:.1f} seconds', flush=True)
     return model, history, accuracy
 
 
@@ -105,7 +108,7 @@ plt.show()
 print('Architecture, final validation accuracy, test accuracy')
 print((128,), f"{history['val_accuracy'][-1]:.2%}",
       f'{baseline_accuracy:.2%}')
-for widths in [(64,), (256,), (128, 64), (128, 64, 32, 16)]:
+for widths in [(256,), (128, 64)]:
     _, h, test = fit_model(widths, 0.2)
     print(widths, f"{h['val_accuracy'][-1]:.2%}", f'{test:.2%}')
 
@@ -138,42 +141,48 @@ spaces = [
     [8, 32, 128, 256, 512],
     [0, 0.1, 0.2, 0.3, 0.5, 0.6],
     [1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
-    [16, 32, 64, 128, 256],
+    [64, 128, 256],
     ['relu', 'elu', 'sigmoid', 'tanh'],
 ]
 candidates = list(product(*spaces))
-loss_
+
+# Train 20 configurations once, then reuse their measured validation losses.
+rng = np.random.default_rng(SEED)
+picks = rng.choice(len(candidates), 20, replace=False)
+trials = []
+for number, ix in enumerate(picks, 1):
+    width, dropout, rate, batch, activation = candidates[ix]
+    print(f'Random trial {number}/20', flush=True)
+    _, h, test = fit_model(
+        (width,), dropout, rate=rate, batch=batch, activation=activation,
+        seed=SEED + number,
+    )
+    val_loss = h['val_loss'][-1]
+    val_acc = h['val_accuracy'][-1]
+    trials.append((candidates[ix], val_loss, val_acc, test))
+    print(f'{candidates[ix]} val loss={val_loss:.4f}, '
+          f'val accuracy={val_acc:.2%}, test accuracy={test:.2%}')
+print('Winner by validation accuracy:', max(trials, key=lambda row: row[2]))
+np.save('mnist_random_validation_losses.npy',
+        np.array([trial[1] for trial in trials]))
 
 
 # ------------------------
 # --- Plot the effect of the number of trials ---
 # ------------------------
-curves = []
-for repeat in range(3):
-    rng = np.random.default_rng(SEED + repeat)
-    picks = rng.choice(len(candidates), 20, replace=False)
-    trials = []
-    for number, ix in enumerate(picks, 1):
-        width, dropout, rate, batch, activation = candidates[ix]
-        _, h, test = fit_model(
-            (width,), dropout, rate=rate, batch=batch, activation=activation,
-            seed=SEED + repeat * 20 + number, evaluate_test=(repeat == 0),
-        )
-        val_loss = h['val_loss'][-1]
-        val_acc = h['val_accuracy'][-1]
-        trials.append((candidates[ix], val_loss, val_acc, test))
-        if repeat == 0:
-            print(f'{number:2d} {candidates[ix]} '
-                  f'val loss {val_loss:.4f}; val {val_acc:.2%}; test {test:.2%}')
-    if repeat == 0:
-        print('Random winner by validation accuracy:',
-              max(trials, key=lambda row: row[2]))
-    loss_curves.append(np.minimum.accumulate([trial[1] for trial in trials]))
-
-curves = np.array(loss_curves)
-mean = curves.mean(axis=0)
-sd = curves.std(axis=0, ddof=1)
+# Repeated subsets of the 20 measured trials require no additional training.
+# This describes this candidate pool, with sampling variability across subsets.
+validation_losses = np.array([trial[1] for trial in trials])
+rng = np.random.default_rng(SEED + 100)
 budget = np.arange(1, 21)
+sampled_best = np.empty((50, len(budget)))
+for column, n_trials in enumerate(budget):
+    for repeat in range(50):
+        chosen = rng.choice(len(validation_losses), n_trials, replace=False)
+        sampled_best[repeat, column] = validation_losses[chosen].min()
+
+mean = sampled_best.mean(axis=0)
+sd = sampled_best.std(axis=0, ddof=1)
 plt.plot(budget, mean, label='Mean best validation loss')
 plt.fill_between(budget, mean - sd, mean + sd, alpha=0.25, label='±1 SD')
 plt.xlabel('Number of trials')
