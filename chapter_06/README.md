@@ -12,3 +12,13 @@ The PDFs contain the saved figures, recorded results and discussion. The Keras P
 Exercise 6.1 uses [TensorFlow Playground](https://playground.tensorflow.org/). The 6.2–6.4 notebooks can be uploaded to Colab and opened with the saved figures visible. Run the executable cells with TensorFlow, NumPy and Matplotlib to reproduce the corrected experiments. Exercise 6.3 downloads the [UCI Wine Quality dataset](https://archive.ics.uci.edu/dataset/186/wine+quality).
 
 The notebooks contain the Python source cells. Exercise 6.1 records the browser experiment with screenshots.
+
+## Source files and Colab
+
+| Exercise | Python script | Colab |
+| --- | --- | --- |
+| 6.2 | [Script](Exercise_6_2_Keras_Introduction.py) | [Open](https://colab.research.google.com/github/A89881/Applied-Deaplearning-in-Engineering-and-Physics/blob/main/chapter_06/Exercise_6_2_Keras_Introduction.ipynb) |
+| 6.3 | [Script](Exercise_6_3_Wine_Keras.py) | [Open](https://colab.research.google.com/github/A89881/Applied-Deaplearning-in-Engineering-and-Physics/blob/main/chapter_06/Exercise_6_3_Wine_Keras.ipynb) |
+| 6.4 | [Script](Exercise_6_4_MNIST.py) | [Open](https://colab.research.google.com/github/A89881/Applied-Deaplearning-in-Engineering-and-Physics/blob/main/chapter_06/Exercise_6_4_MNIST.ipynb) |
+
+Colab provides a working TensorFlow environment. You can also run these files in another environment with TensorFlow installed. Exercise 6.4 needs the revised grid and random searches executed so the final report includes the required test scores and repeated validation loss study.
