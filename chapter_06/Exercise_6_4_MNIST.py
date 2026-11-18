@@ -33,7 +33,7 @@ print('Train, validation, test:', len(x_train), len(x_val), len(x_test))
 # --- Define and train a network ---
 # ------------------------
 def fit_model(widths, dropout, rate=0.001, batch=128, activation='relu',
-              seed=SEED, evaluate_test=True):
+              seed=SEED, evaluate_test=True, training_data=None):
     keras.backend.clear_session()
     keras.utils.set_random_seed(seed)
     # Add the hidden layers in the same order as the chosen widths.
@@ -48,7 +48,8 @@ def fit_model(widths, dropout, rate=0.001, batch=128, activation='relu',
                   loss='categorical_crossentropy', metrics=['accuracy'])
     started = perf_counter()
     print(f'Training {widths}, dropout={dropout}, rate={rate}, batch={batch}', flush=True)
-    history = model.fit(x_train, y_train, batch_size=batch, epochs=10,
+    inputs, labels = (x_train, y_train) if training_data is None else training_data
+    history = model.fit(inputs, labels, batch_size=batch, epochs=10,
                         validation_data=(x_val, y_val), verbose=2).history
     accuracy = None
     if evaluate_test:
@@ -149,13 +150,20 @@ candidates = list(product(*spaces))
 # Train 20 configurations once, then reuse their measured validation losses.
 rng = np.random.default_rng(SEED)
 picks = rng.choice(len(candidates), 20, replace=False)
+
+# Use the same fixed training subset for every random configuration.
+search_indices = np.random.default_rng(SEED + 1).choice(
+    len(x_train), size=10_000, replace=False,
+)
+search_data = (x_train[search_indices], y_train[search_indices])
+print(f"Random search uses {len(search_indices):,} training images per trial.")
 trials = []
 for number, ix in enumerate(picks, 1):
     width, dropout, rate, batch, activation = candidates[ix]
     print(f'Random trial {number}/20', flush=True)
     _, h, test = fit_model(
         (width,), dropout, rate=rate, batch=batch, activation=activation,
-        seed=SEED + number,
+        seed=SEED + number, training_data=search_data,
     )
     val_loss = h['val_loss'][-1]
     val_acc = h['val_accuracy'][-1]
