@@ -1,14 +1,10 @@
-# Adapted from the course template.
-# Saved figures and measured results are documented in the matching PDF.
+# Adapted from the course exercise template.
 
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
 
-
-# ------------------------
-# --- Prepare the training and test examples ---
-# ------------------------
+# Prepare the training and test examples.
 seed = 620
 keras.utils.set_random_seed(seed)
 rng = np.random.default_rng(seed)
@@ -22,10 +18,7 @@ y_train = (target(x_train) + rng.normal(size=x_train.shape)).astype('float32')
 x_test = np.linspace(-10, 10, 10_000, dtype='float32').reshape(-1, 1)
 y_test = target(x_test)
 
-
-# ------------------------
-# --- Define and compile the network ---
-# ------------------------
+# Define and compile the network.
 model = keras.Sequential(
     [keras.Input(shape=(1,))]
     + [keras.layers.Dense(100, activation='relu') for _ in range(8)]
@@ -46,10 +39,7 @@ class RecordPredictions(keras.callbacks.Callback):
                 self.inputs, verbose=0
             ).ravel()
 
-
-# ------------------------
-# --- Train the network and save predictions ---
-# ------------------------
+# Train the network and save predictions.
 snapshots = RecordPredictions(x_test)
 history = model.fit(
     x_train, y_train, epochs=200, batch_size=64, callbacks=[snapshots], verbose=0
@@ -59,10 +49,7 @@ test_mse = np.mean((final_prediction - y_test.ravel())**2)
 print(f"Final training MSE: {history.history['loss'][-1]:.4f}")
 print(f"Noiseless test MSE: {test_mse:.4f}")
 
-
-# ------------------------
-# --- Plot the predictions and training loss ---
-# ------------------------
+# Plot the predictions and training loss.
 fig, (prediction_ax, loss_ax) = plt.subplots(2, 1, figsize=(10, 8))
 prediction_ax.plot(x_test.ravel(), y_test.ravel(), 'k', label='Exact target')
 for epoch, predictions in snapshots.predictions.items():

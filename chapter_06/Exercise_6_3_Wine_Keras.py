@@ -1,5 +1,4 @@
-# Adapted from the course template.
-# Saved figures and measured results are documented in the matching PDF.
+# Adapted from the course exercise template.
 
 from pathlib import Path
 from urllib.request import urlretrieve
@@ -8,10 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tensorflow import keras
 
-
-# ------------------------
-# --- Load and prepare the wine data ---
-# ------------------------
+# Load and prepare the wine data.
 path = Path('winequality-white.csv')
 if not path.exists():
     urlretrieve(
@@ -32,10 +28,7 @@ x_train, y_train = split(train)
 x_val, y_val = split(validation)
 x_test, y_test = split(test)
 
-
-# ------------------------
-# --- Define the network ---
-# ------------------------
+# Define the network.
 def build_model(widths, optimizer):
     keras.utils.set_random_seed(630)
     model = keras.Sequential(
@@ -46,10 +39,7 @@ def build_model(widths, optimizer):
     model.compile(optimizer=optimizer, loss='mse', steps_per_execution=32)
     return model
 
-
-# ------------------------
-# --- Choose the optimizer and network settings ---
-# ------------------------
+# Choose the optimizer and network settings.
 configs = [
     ('SGD', (20,), 'sgd', 1),
     ('Momentum SGD', (20,), 'momentum', 1),
@@ -64,10 +54,7 @@ optimizers = {
     'adam': lambda: keras.optimizers.Adam(learning_rate=0.001),
 }
 
-
-# ------------------------
-# --- Train each setting ---
-# ------------------------
+# Train each setting.
 runs = {}
 for label, widths, optimizer, batch in configs:
     model = build_model(widths, optimizers[optimizer]())
@@ -79,10 +66,7 @@ for label, widths, optimizer, batch in configs:
     val_r = np.corrcoef(val_prediction, y_val)[0, 1]
     runs[label] = (model, history, val_r)
 
-
-# ------------------------
-# --- Compare the results ---
-# ------------------------
+# Compare the results.
 winner = max(runs, key=lambda label: runs[label][2])
 print(f'Selected by validation correlation: {winner}')
 print(f"{'Model':30} {'Val r':>8} {'Test MSE':>10} {'Test r':>8}")
@@ -92,10 +76,7 @@ for label, (model, _, val_r) in runs.items():
     test_r = np.corrcoef(prediction, y_test)[0, 1]
     print(f'{label:30} {val_r:8.4f} {test_mse:10.4f} {test_r:8.4f}')
 
-
-# ------------------------
-# --- Plot the loss and predictions ---
-# ------------------------
+# Plot the loss and predictions.
 fig, axes = plt.subplots(3, 2, figsize=(10, 9), sharex=True)
 for ax, (label, (_, history, _)) in zip(axes.flat, runs.items()):
     epochs = np.arange(1, len(history['loss']) + 1)

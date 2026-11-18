@@ -1,4 +1,4 @@
-# Adapted from the course MNIST exercise.
+# Adapted from the course exercise template.
 
 from itertools import product
 from time import perf_counter
@@ -7,10 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tensorflow import keras
 
-
-# ------------------------
-# --- Prepare the images and labels ---
-# ------------------------
+# Prepare the images and labels.
 SEED = 640
 keras.utils.set_random_seed(SEED)
 (x_all, y_all), (x_test_images, y_test) = keras.datasets.mnist.load_data()
@@ -28,12 +25,9 @@ y_val = keras.utils.to_categorical(y_all[val], 10)
 y_test_hot = keras.utils.to_categorical(y_test, 10)
 print('Train, validation, test:', len(x_train), len(x_val), len(x_test))
 
-
-# ------------------------
-# --- Define and train a network ---
-# ------------------------
+# Define and train a network.
 def fit_model(widths, dropout, rate=0.001, batch=128, activation='relu',
-              seed=SEED, evaluate_test=True, training_data=None):
+              seed=SEED, evaluate_test=True):
     keras.backend.clear_session()
     keras.utils.set_random_seed(seed)
     # Add the hidden layers in the same order as the chosen widths.
@@ -48,8 +42,7 @@ def fit_model(widths, dropout, rate=0.001, batch=128, activation='relu',
                   loss='categorical_crossentropy', metrics=['accuracy'])
     started = perf_counter()
     print(f'Training {widths}, dropout={dropout}, rate={rate}, batch={batch}', flush=True)
-    inputs, labels = (x_train, y_train) if training_data is None else training_data
-    history = model.fit(inputs, labels, batch_size=batch, epochs=10,
+    history = model.fit(x_train, y_train, batch_size=batch, epochs=10,
                         validation_data=(x_val, y_val), verbose=2).history
     accuracy = None
     if evaluate_test:
@@ -57,10 +50,7 @@ def fit_model(widths, dropout, rate=0.001, batch=128, activation='relu',
     print(f'Finished in {perf_counter() - started:.1f} seconds', flush=True)
     return model, history, accuracy
 
-
-# ------------------------
-# --- Train the 128 node network ---
-# ------------------------
+# Train the 128 node network.
 baseline, history, baseline_accuracy = fit_model((128,), 0.2)
 print(f'Baseline test accuracy: {baseline_accuracy:.2%}')
 epochs = np.arange(1, 11)
@@ -71,10 +61,7 @@ plt.ylabel('Accuracy')
 plt.legend()
 plt.show()
 
-
-# ------------------------
-# --- Check the confusion matrix ---
-# ------------------------
+# Check the confusion matrix.
 prediction = baseline.predict(x_test, verbose=0).argmax(axis=1)
 confusion = np.zeros((10, 10), dtype=int)
 np.add.at(confusion, (y_test, prediction), 1)
@@ -89,10 +76,7 @@ for row, col in product(range(10), repeat=2):
 fig.colorbar(heatmap, ax=ax)
 plt.show()
 
-
-# ------------------------
-# --- Show correct and incorrect predictions ---
-# ------------------------
+# Show correct and incorrect predictions.
 fig, axes = plt.subplots(2, 6, figsize=(10, 4))
 for axs, mask in zip(axes, (prediction == y_test, prediction != y_test)):
     for ax, i in zip(axs, np.flatnonzero(mask)[:6]):
@@ -102,10 +86,7 @@ for axs, mask in zip(axes, (prediction == y_test, prediction != y_test)):
 fig.tight_layout()
 plt.show()
 
-
-# ------------------------
-# --- Compare different hidden layers ---
-# ------------------------
+# Compare different hidden layers.
 print('Architecture, final validation accuracy, test accuracy')
 print((128,), f"{history['val_accuracy'][-1]:.2%}",
       f'{baseline_accuracy:.2%}')
@@ -113,10 +94,7 @@ for widths in [(256,), (128, 64)]:
     _, h, test = fit_model(widths, 0.2)
     print(widths, f"{h['val_accuracy'][-1]:.2%}", f'{test:.2%}')
 
-
-# ------------------------
-# --- Grid search over dropout and hidden nodes ---
-# ------------------------
+# Grid search over dropout and hidden nodes.
 widths = [32, 64, 128, 256]
 dropouts = [0.0, 0.2, 0.4, 0.6]
 grid = []
@@ -134,10 +112,7 @@ plt.ylabel('Test accuracy')
 plt.legend()
 plt.show()
 
-
-# ------------------------
-# --- Random search over five hyperparameters ---
-# ------------------------
+# Random search over five hyperparameters.
 spaces = [
     [8, 32, 128, 256, 512],
     [0, 0.1, 0.2, 0.3, 0.5, 0.6],
@@ -150,20 +125,13 @@ candidates = list(product(*spaces))
 # Train 20 configurations once, then reuse their measured validation losses.
 rng = np.random.default_rng(SEED)
 picks = rng.choice(len(candidates), 20, replace=False)
-
-# Use the same fixed training subset for every random configuration.
-search_indices = np.random.default_rng(SEED + 1).choice(
-    len(x_train), size=10_000, replace=False,
-)
-search_data = (x_train[search_indices], y_train[search_indices])
-print(f"Random search uses {len(search_indices):,} training images per trial.")
 trials = []
 for number, ix in enumerate(picks, 1):
     width, dropout, rate, batch, activation = candidates[ix]
     print(f'Random trial {number}/20', flush=True)
     _, h, test = fit_model(
         (width,), dropout, rate=rate, batch=batch, activation=activation,
-        seed=SEED + number, training_data=search_data,
+        seed=SEED + number,
     )
     val_loss = h['val_loss'][-1]
     val_acc = h['val_accuracy'][-1]
@@ -174,10 +142,7 @@ print('Winner by validation accuracy:', max(trials, key=lambda row: row[2]))
 np.save('mnist_random_validation_losses.npy',
         np.array([trial[1] for trial in trials]))
 
-
-# ------------------------
-# --- Plot the effect of the number of trials ---
-# ------------------------
+# Plot the effect of the number of trials.
 # Repeated subsets of the 20 measured trials require no additional training.
 # This describes this candidate pool, with sampling variability across subsets.
 validation_losses = np.array([trial[1] for trial in trials])
